@@ -36,24 +36,37 @@ const createSubscription = (email, firstName, lastName, updateExisting = false) 
   })
 }
 
-const updateSubscription = (email, firstName, lastName, context) => {
+const responseObject = (responseBody = {}) => {
+  return {
+    statusCode: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    },
+    body: JSON.stringify(responseBody)
+  }
+}
+
+const updateSubscription = (email, firstName, lastName, context, callback) => {
   createSubscription(email, firstName, lastName, true)
     .then((responseBody) => {
-       context.succeed(responseBody)
+      const response = responseObject(responseBody)
+      callback(null, response)
     })
     .catch((err) => {
       context.fail(new Error(err))
     })
 }
 
-exports.handler = (event, context) => {
-  const { email, firstName, lastName } = event
+exports.handler = (event, context, callback) => {
+  const body = JSON.parse(event.body)
+  const { email, firstName, lastName } = body
   createSubscription(email, firstName, lastName)
     .then((responseBody) => {
       if (responseBody && responseBody.total_created === 0 && responseBody.total_updated === 0) {
-        updateSubscription(email, firstName, lastName, context)
+        updateSubscription(email, firstName, lastName, context, callback)
       } else {
-        context.succeed(responseBody)
+        const response = responseObject(responseBody)
+        callback(null, response)
       }
     })
     .catch((err) => {
